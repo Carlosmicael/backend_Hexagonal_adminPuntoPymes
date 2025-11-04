@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id    Int     @id @default(autoincrement())
+  name  String
+  email String  @unique
+}
+
+
+//**npx prisma migrate dev --name init**
+
+//Esto hace lo siguiente:
+//Crea una migración en prisma/migrations/.
+//Aplica esa migración a la base de datos.
+//Actualiza el cliente Prisma automáticamente.
+
+
+
+//Si la base ya tiene tablas y quieres que Prisma las reconozca, usas
+//**npx prisma db pull**
+
+//Esto hace lo contrario:
+//Lee la estructura de la base.
+//Actualiza tu schema.prisma para reflejar lo que ya existe.
+
+
+//si quieres leer simplemente la base de datos sin hacer nada mas 
+//**npx prisma generate**
+
+//No crea ni modifica la base de datos.
+//Solo genera el código que te permite interactuar con ella.
+//Requiere que el archivo .env tenga la variable DATABASE_URL.
