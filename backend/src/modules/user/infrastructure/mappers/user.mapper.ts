@@ -1,5 +1,5 @@
 // infrastructure/mappers/user.mapper.ts
-import { User } from '../domain/user.entity';
+import { User } from '../../domain/user.entity';
 
 export class UserMapper {
   static toDomain(raw: any): User {

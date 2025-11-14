@@ -1,12 +1,18 @@
 import { Module } from '@nestjs/common';
 import { UserController } from './infrastructure/controllers/user.controller';
+import { CreateUserUseCase } from './application/create-user.usecase';
+import { FirebaseUserRepository } from './infrastructure/repositories/user.repository.firebase';
+import { FirebaseService } from '../../infrastructure/database/firebase.service';
 
 @Module({
   controllers: [UserController],
+  providers: [
+    CreateUserUseCase,
+    FirebaseUserRepository,
+    FirebaseService,
+  ],
 })
 export class UserModule {}
-
-
 
 //esto mejora el desacoplamiento ya que solo creamos una nueva injecccion del repositorio
 

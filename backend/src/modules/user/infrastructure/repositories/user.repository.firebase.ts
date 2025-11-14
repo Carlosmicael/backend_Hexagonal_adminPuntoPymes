@@ -28,3 +28,43 @@ export class FirebaseUserRepository implements IUserRepository {
   }
 }
 */
+
+import { Injectable } from '@nestjs/common';
+import { FirebaseService } from '../../../../infrastructure/database/firebase.service';
+import * as bcrypt from 'bcrypt';
+
+@Injectable()
+export class FirebaseUserRepository {
+  constructor(private readonly firebase: FirebaseService) {}
+
+  async createUser(dto: any, fotoPerfilUrl: string, empresaId: string) {
+    const uid = this.firebase.firestore.collection('usuarios').doc().id;
+    const passwordHash = await bcrypt.hash(dto.contrasena, 10);
+
+    await this.firebase.firestore.collection('usuarios').doc(uid).set({
+      uid,
+      nombres: dto.nombres,
+      apellidos: dto.apellidos,
+      cedula: dto.cedula,
+      correo: dto.correo,
+      telefono: dto.telefono,
+      genero: dto.genero,
+      fechaNacimiento: dto.fechaNacimiento,
+      usuario: dto.usuario,
+      passwordHash,
+      fotoPerfilUrl,
+      rol: dto.rol ?? 'Empleado',
+      empresaId,
+      fechaCreacion: new Date(),
+    });
+
+    return uid;
+  }
+
+  async findByUsername(usuario: string) {
+    const snap = await this.firebase.firestore.collection('usuarios')
+      .where('usuario', '==', usuario).get();
+    return snap.empty ? null : snap.docs[0].data();
+  }
+}
+
