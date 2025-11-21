@@ -3,6 +3,8 @@ import { UserController } from './infrastructure/controllers/user.controller';
 import { CreateUserUseCase } from './application/create-user.usecase';
 import { FirebaseUserRepository } from './infrastructure/repositories/user.repository.firebase';
 import { FirebaseService } from '../../infrastructure/database/firebase.service';
+import { GetUserUseCase } from './application/get-user.usecase';
+import { UpdateUserUseCase } from './application/update-user.usecase';
 
 @Module({
   controllers: [UserController],
@@ -10,6 +12,8 @@ import { FirebaseService } from '../../infrastructure/database/firebase.service'
     CreateUserUseCase,
     FirebaseUserRepository,
     FirebaseService,
+    GetUserUseCase,
+    UpdateUserUseCase,
   ],
 })
 export class UserModule {}

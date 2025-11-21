@@ -1,11 +1,17 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards, Get, Param, Patch } from '@nestjs/common';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { CreateUserUseCase } from '../../application/create-user.usecase';
 import { JwtAuthGuard } from '../../../../shared/guards/jwt-auth.guard';
+import { UpdateUserDto } from '@modules/user/application/dto/update-user.dto';
+import { GetUserUseCase } from '../../application/get-user.usecase';
+import { UpdateUserUseCase } from '../../application/update-user.usecase';
 
 @Controller('users')
 export class UserController {
-  constructor(private readonly createUserUseCase: CreateUserUseCase) {}
+  constructor(private readonly createUserUseCase: CreateUserUseCase,
+    private readonly getUserUseCase: GetUserUseCase,
+    private readonly updateUserUseCase: UpdateUserUseCase,
+  ) {}
 
   // Protegemos la ruta con JWT
   @UseGuards(JwtAuthGuard)
@@ -13,6 +19,20 @@ export class UserController {
   async create(@Body() dto: CreateUserDto) {
     const user = await this.createUserUseCase.execute(dto.name, dto.email);
     return { id: user.id, name: user.name, email: user.email };
+  }
+
+  // Endpoint para CARGAR los datos en la pantalla
+  // GET http://localhost:3000/users/:uid
+  @Get(':uid')
+  async getProfile(@Param('uid') uid: string) {
+    return await this.getUserUseCase.execute(uid);
+  }
+
+  // Endpoint para GUARDAR los cambios
+  // PATCH http://localhost:3000/users/:uid
+  @Patch(':uid')
+  async updateProfile(@Param('uid') uid: string, @Body() dto: UpdateUserDto) {
+    return await this.updateUserUseCase.execute(uid, dto);
   }
 }
 

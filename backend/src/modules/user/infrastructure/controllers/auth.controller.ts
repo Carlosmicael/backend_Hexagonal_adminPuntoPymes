@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Body, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { FirebaseUserRepository } from '../repositories/user.repository.firebase';
 import { FirebaseCompanyRepository } from '../repositories/company.repository.firebase';
 import { FirebaseService } from '../../../../infrastructure/database/firebase.service';
@@ -17,26 +17,45 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() dto: RegisterDto) {
+    // 1. Validar duplicados antes de procesar nada
+    const existingUser = await this.userRepo.findByUsername(dto.usuario);
+    if (existingUser) throw new BadRequestException('El usuario ya existe');
+
+    // 2. Generar el UID del usuario PREVIAMENTE
+    const newUserId = this.userRepo.generateId();
+
+    // 3. Manejo de Empresa
     const empresaId = await this.companyRepo.findOrCreateCompany(
       dto.ruc,
-      dto.nombreEmpresa ?? 'UTPL' // si viene undefined, pasa string por defecto utpl
+      dto.nombreEmpresa ?? 'UTPL'
     );
-    await this.companyRepo.addBranch(empresaId, dto.sucursal, dto.lat, dto.lng, dto.direccion ?? '') //si es undefined, guarda string vacío);
+    
+    // Si dirección es undefined, pasar string vacío
+    await this.companyRepo.addBranch(empresaId, dto.sucursal, dto.lat, dto.lng, dto.direccion ?? '');
 
-    // Manejo de imagen opcional
-    let fotoPerfilUrl = 'https://img.freepik.com/vector-premium/escena-naturaleza-arboles-e-ilustracion-rio_135595-107842.jpg?semt=ais_hybrid&w=740&q=80'; // valor por defecto
-    if (dto.fotoPerfilFile) {
-      const buffer = Buffer.from(dto.fotoPerfilFile, 'base64');
-      fotoPerfilUrl = await this.firebase.uploadProfileImage(
-        dto.uid ?? 'temp',
-        buffer,
-        dto.mimeType ?? 'image/jpeg'
-      );
+    // 4. Manejo de Imagen: Usamos el newUserId generado
+    let fotoPerfilUrl = 'https://cdn-icons-png.flaticon.com/512/266/266134.png'; // Default
+    
+    if (dto.fotoPerfilBase64 && dto.fotoPerfilBase64.length > 0) {
+      try {
+        const base64Data = dto.fotoPerfilBase64.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, 'base64');
+        // AHORA guardamos en perfiles/{ID_REAL}/foto_perfil.jpg
+        fotoPerfilUrl = await this.firebase.uploadProfileImage(
+          newUserId, 
+          buffer,
+          dto.mimeType ?? 'image/jpeg'
+        );
+      } catch (error) {
+        console.error('Error subiendo imagen:', error);
+        // Decidir si fallar el registro o continuar con imagen por defecto
+      }
     }
 
-    const uid = await this.userRepo.createUser(dto, fotoPerfilUrl, empresaId);
+    // 5. Crear usuario usando el ID generado y la URL correcta
+    await this.userRepo.createUserWithId(newUserId, dto, fotoPerfilUrl, empresaId);
 
-    return { uid, usuario: dto.usuario };
+    return { uid: newUserId, usuario: dto.usuario };
   }
 
   @Post('login')

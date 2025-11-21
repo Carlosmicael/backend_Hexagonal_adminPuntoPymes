@@ -37,8 +37,13 @@ import * as bcrypt from 'bcrypt';
 export class FirebaseUserRepository {
   constructor(private readonly firebase: FirebaseService) {}
 
-  async createUser(dto: any, fotoPerfilUrl: string, empresaId: string) {
-    const uid = this.firebase.firestore.collection('usuarios').doc().id;
+  // Método para generar ID
+  generateId(): string {
+    return this.firebase.firestore.collection('usuarios').doc().id;
+  }
+
+  // Método modificado para recibir el UID ya generado
+  async createUserWithId(uid: string, dto: any, fotoPerfilUrl: string, empresaId: string) {
     const passwordHash = await bcrypt.hash(dto.contrasena, 10);
 
     await this.firebase.firestore.collection('usuarios').doc(uid).set({
@@ -65,6 +70,22 @@ export class FirebaseUserRepository {
     const snap = await this.firebase.firestore.collection('usuarios')
       .where('usuario', '==', usuario).get();
     return snap.empty ? null : snap.docs[0].data();
+  }
+
+  // Método para LEER el perfil (GET)
+  async findById(uid: string) {
+    const doc = await this.firebase.firestore.collection('usuarios').doc(uid).get();
+    if (!doc.exists) return null;
+    return doc.data();
+  }
+
+  // Método para ACTUALIZAR el perfil (PATCH)
+  async update(uid: string, data: any) {
+    // Eliminamos campos que no deben tocarse por seguridad si llegan en el data
+    const { uid: id, correo, cedula, ...updateData } = data; 
+    
+    await this.firebase.firestore.collection('usuarios').doc(uid).update(updateData);
+    return { uid, ...updateData };
   }
 }
 

@@ -1,4 +1,4 @@
-import { IsString, IsEmail, MinLength, IsDate, IsOptional } from 'class-validator';
+import { IsString, IsEmail, MinLength, IsDate, IsOptional, IsNumber, Min, Max } from 'class-validator';
 
 export class RegisterDto {
   @IsString() nombres!: string;
@@ -12,13 +12,17 @@ export class RegisterDto {
   @MinLength(6) contrasena!: string;
   @IsString() ruc!: string;
   @IsString() sucursal!: string;
-  lat!: number;
-  lng!: number;
   direccion?: string;
   @IsOptional()
-  fotoPerfilFile?: string;
+  fotoPerfilBase64?: string;
   @IsOptional()
   mimeType?: string;
   uid?: string;
   nombreEmpresa?: string;
+  @IsNumber()
+  @Min(-90) @Max(90)
+  lat!: number;
+  @IsNumber()
+  @Min(-180) @Max(180)
+  lng!: number;
 }
