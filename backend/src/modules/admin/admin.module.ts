@@ -1,15 +1,13 @@
 
-/*import { Module } from '@nestjs/common';
-import { UserController } from './infrastructure/controllers/user.controller';
+import { Module } from '@nestjs/common';
+import { AuthController } from './infrastructure/controllers/auth.controller';
 import { FirebaseModule } from '../../infrastructure/database/firebase.module';
-import { FirebaseUserRepository } from './infrastructure/repositories/user.repository.firebase';
-import { CreateUserUseCase } from './application/create-user.usecase';
+import { AdminFirestoreRepository } from './infrastructure/repositories/admin.firestore.repository';
+import { AuthService } from './application/admin.service';
 
 @Module({
   imports: [FirebaseModule],
-  controllers: [UserController],
-  providers: [
-  CreateUserUseCase,{ provide: 'IUserRepository', useClass: FirebaseUserRepository },
-]
+  controllers: [AuthController],
+  providers: [AuthService, { provide: 'AdminRepository', useClass: AdminFirestoreRepository }],
 })
-export class UserModule {}*/
+export class AdminModule {}
