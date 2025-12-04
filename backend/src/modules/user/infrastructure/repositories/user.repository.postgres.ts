@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+/*import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../infrastructure/database/prisma.service';
 import { IUserRepository } from '../../domain/user.repository';
 import { User } from '../../domain/user.entity';
@@ -19,4 +19,4 @@ export class PostgresUserRepository implements IUserRepository {
     const record = await this.prisma.user.findUnique({ where: { email } });
     return record ? UserMapper.toDomain(record) : null;
   }
-}
+}*/

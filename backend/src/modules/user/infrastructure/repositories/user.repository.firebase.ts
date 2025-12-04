@@ -1,30 +1,30 @@
-/*import { Injectable } from '@nestjs/common';
-import { IUserRepository } from '../../../domain/user.repository';
-import { User } from '../../../domain/user.entity';
-import { FirebaseService } from '../../../../infrastructure/database/firebase.service';
-import { UserMapper } from '../mappers/user.mapper';
+import { Inject, Injectable } from '@nestjs/common';
+import { IUserRepository } from '../../../user/domain/user.repository';
+import { User } from '../../../user/domain/user.entity';
+import{firestore} from 'firebase-admin';
 
 @Injectable()
 export class FirebaseUserRepository implements IUserRepository {
-  constructor(private readonly firebase: FirebaseService) {}
+  constructor(@Inject('FIRESTORE') private firestore: firestore.Firestore) {}
 
   async create(user: User): Promise<User> {
-    const data = UserMapper.toPersistence(user);
-    const docRef = await this.firebase.firestore.collection('users').add(data);
-    const snapshot = await docRef.get();
-    return UserMapper.toDomain(snapshot.data()!, docRef.id);
+    await this.firestore.collection('users').doc(user.id).set({
+      name: user.name,
+      email: user.email,
+    });
+    return user;
   }
 
-  async findByEmail(email: string): Promise<User | null> {
-    const query = await this.firebase.firestore
-      .collection('users')
-      .where('email', '==', email)
-      .get();
+  async findAll(): Promise<User[]> {
+    const snapshot = await this.firestore.collection('users').get();
 
-    if (query.empty) return null;
+    const users: User[] = [];
 
-    const doc = query.docs[0];
-    return UserMapper.toDomain(doc.data(), doc.id);
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      users.push(new User(doc.id, data.name, data.email));
+    });
+
+    return users;
   }
 }
-*/
