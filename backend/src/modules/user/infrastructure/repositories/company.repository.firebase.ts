@@ -1,31 +1,46 @@
 
-import { Injectable } from '@nestjs/common';
-import { FirebaseService } from '../../../../infrastructure/database/firebase.service';
+import { Inject, Injectable } from '@nestjs/common';
+import { firestore } from 'firebase-admin';
 
 @Injectable()
 export class FirebaseCompanyRepository {
-  constructor(private readonly firebase: FirebaseService) {}
+  constructor(@Inject('FIRESTORE') private readonly firestore: firestore.Firestore) { }
 
-  async findOrCreateCompany(ruc: string, nombre: string) {
-    const snap = await this.firebase.firestore.collection('empresas')
+  async findOrCreateCompany(ruc: string, nombre: string, direccion: string, telefono: string) {
+    const snap = await this.firestore.collection('companies')
       .where('ruc', '==', ruc).get();
 
     if (!snap.empty) return snap.docs[0].id;
 
-    const ref = await this.firebase.firestore.collection('empresas').add({
+    const ref = await this.firestore.collection('companies').add({
       ruc,
       nombre,
-      fechaRegistro: new Date(),
+      direccion,
+      telefono,
+      createdAt: new Date(),
     });
     return ref.id;
   }
 
   async addBranch(empresaId: string, sucursal: string, lat: number, lng: number, direccion?: string) {
-    await this.firebase.firestore.collection('empresas')
-      .doc(empresaId).collection('sucursales').add({
-        nombreSucursal: sucursal,
-        coordenadas: new (require('firebase-admin').firestore.GeoPoint)(lat, lng),
+    await this.firestore.collection('companies')
+      .doc(empresaId).collection('branches').add({
+        nombre: sucursal,
+        latitud: lat,
+        longitud: lng,
+        rangoGeografico: 100,
         direccion,
+        createdAt: new Date()
       });
+  }
+
+  async getBranchById(companyId: string, branchId: string) {
+    const doc = await this.firestore
+      .collection('companies').doc(companyId)
+      .collection('branches').doc(branchId)
+      .get();
+
+    if (!doc.exists) return null;
+    return { id: doc.id, ...doc.data() } as any;
   }
 }

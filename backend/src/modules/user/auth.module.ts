@@ -11,7 +11,7 @@ import { JwtStrategy } from './infrastructure/strategies/jwt.strategy';
   imports: [
     PassportModule,
     JwtModule.register({
-      secret: 'superSecretKey', 
+      secret: process.env.JWT_SECRET || 'superSecretKey',
       signOptions: { expiresIn: '1h' },
     }),
   ],
@@ -23,4 +23,4 @@ import { JwtStrategy } from './infrastructure/strategies/jwt.strategy';
     JwtStrategy,
   ],
 })
-export class AuthModule {}
+export class AuthModule { }

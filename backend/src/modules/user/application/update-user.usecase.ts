@@ -6,7 +6,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 export class UpdateUserUseCase {
   constructor(private readonly userRepo: FirebaseUserRepository) {}
 
-  async execute(uid: string, dto: UpdateUserDto) {
-    return await this.userRepo.update(uid, dto);
+  async execute(companyId: string, uid: string, dto: UpdateUserDto) {
+    return await this.userRepo.update(companyId, uid, dto);
   }
 }

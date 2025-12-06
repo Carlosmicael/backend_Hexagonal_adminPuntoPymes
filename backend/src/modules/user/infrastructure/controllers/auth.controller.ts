@@ -27,22 +27,24 @@ export class AuthController {
     // 3. Manejo de Empresa
     const empresaId = await this.companyRepo.findOrCreateCompany(
       dto.ruc,
-      dto.nombreEmpresa ?? 'UTPL'
+      dto.nombreEmpresa ?? 'UTPL',
+      dto.direccion ?? '',
+      dto.telefono
     );
-    
+
     // Si dirección es undefined, pasar string vacío
     await this.companyRepo.addBranch(empresaId, dto.sucursal, dto.lat, dto.lng, dto.direccion ?? '');
 
     // 4. Manejo de Imagen: Usamos el newUserId generado
     let fotoPerfilUrl = 'https://cdn-icons-png.flaticon.com/512/266/266134.png'; // Default
-    
+
     if (dto.fotoPerfilBase64 && dto.fotoPerfilBase64.length > 0) {
       try {
         const base64Data = dto.fotoPerfilBase64.replace(/^data:image\/\w+;base64,/, "");
         const buffer = Buffer.from(base64Data, 'base64');
         // AHORA guardamos en perfiles/{ID_REAL}/foto_perfil.jpg
         fotoPerfilUrl = await this.firebase.uploadProfileImage(
-          newUserId, 
+          newUserId,
           buffer,
           dto.mimeType ?? 'image/jpeg'
         );
@@ -68,9 +70,14 @@ export class AuthController {
     const valid = await bcrypt.compare(contrasena, user.passwordHash);
     if (!valid) throw new UnauthorizedException('Contraseña incorrecta');
 
-    const payload = { uid: user.uid, usuario: user.usuario, rol: user.rol };
+    const payload = { 
+        uid: user.uid, 
+        usuario: user.usuario, 
+        rol: user.rol, 
+        empresaId: user.empresaId
+     };
     const token = await this.jwtService.signAsync(payload);
 
-    return { access_token: token, uid: user.uid, usuario: user.usuario, rol: user.rol };
+    return { access_token: token, uid: user.uid, usuario: user.usuario, rol: user.rol, empresaId: user.empresaId };
   }
 }

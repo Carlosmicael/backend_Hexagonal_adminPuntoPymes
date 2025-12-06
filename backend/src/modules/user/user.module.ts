@@ -6,6 +6,10 @@ import { FirebaseService } from '../../infrastructure/database/firebase.service'
 import { GetUserUseCase } from './application/get-user.usecase';
 import { UpdateUserUseCase } from './application/update-user.usecase';
 
+import { FirebaseAttendanceRepository } from './infrastructure/repositories/attendance.repository.firebase';
+import { FirebaseVacationRepository } from './infrastructure/repositories/vacation.repository.firebase';
+import { FirebaseKpiRepository } from './infrastructure/repositories/kpi.repository.firebase';
+
 @Module({
   controllers: [UserController],
   providers: [
@@ -14,6 +18,10 @@ import { UpdateUserUseCase } from './application/update-user.usecase';
     FirebaseService,
     GetUserUseCase,
     UpdateUserUseCase,
+
+    FirebaseAttendanceRepository,
+    FirebaseVacationRepository,
+    FirebaseKpiRepository,
   ],
 })
 export class UserModule {}

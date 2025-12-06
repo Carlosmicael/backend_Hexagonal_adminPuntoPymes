@@ -29,63 +29,130 @@ export class FirebaseUserRepository implements IUserRepository {
 }
 */
 
-import { Injectable } from '@nestjs/common';
-import { FirebaseService } from '../../../../infrastructure/database/firebase.service';
+import { Inject, Injectable } from '@nestjs/common';
+import { firestore } from 'firebase-admin';
+import { IUserRepository } from '../../domain/user.repository';
 import * as bcrypt from 'bcrypt';
+import moment from 'moment-timezone';
+
+// Estructura de la Jornada
+export interface Jornada {
+  id: string;
+  horaEntrada: string; // Ej: "09:00:00"
+  horaSalida: string;  // Ej: "18:00:00"
+  tolerancia: number;  // Ej: 15 (minutos)
+  dias: number[];      // Array de números, Ej: [1, 2, 3, 4, 5] (Lunes a Viernes)
+  activa: boolean;     // true
+}
 
 @Injectable()
 export class FirebaseUserRepository {
-  constructor(private readonly firebase: FirebaseService) {}
+  constructor(@Inject('FIRESTORE') private readonly firestore: firestore.Firestore) { }
 
   // Método para generar ID
   generateId(): string {
-    return this.firebase.firestore.collection('usuarios').doc().id;
+    return this.firestore.collection('_temp_ids').doc().id;
   }
 
   // Método modificado para recibir el UID ya generado
   async createUserWithId(uid: string, dto: any, fotoPerfilUrl: string, empresaId: string) {
     const passwordHash = await bcrypt.hash(dto.contrasena, 10);
 
-    await this.firebase.firestore.collection('usuarios').doc(uid).set({
-      uid,
-      nombres: dto.nombres,
-      apellidos: dto.apellidos,
-      cedula: dto.cedula,
-      correo: dto.correo,
-      telefono: dto.telefono,
-      genero: dto.genero,
-      fechaNacimiento: dto.fechaNacimiento,
-      usuario: dto.usuario,
-      passwordHash,
-      fotoPerfilUrl,
-      rol: dto.rol ?? 'Empleado',
-      empresaId,
-      fechaCreacion: new Date(),
-    });
+    await this.firestore
+      .collection('companies').doc(empresaId)
+      .collection('employees').doc(uid)
+      .set({
+        // Datos personales
+        nombre: dto.nombres,
+        apellido: dto.apellidos,
+        cedula: dto.cedula,
+        correo: dto.correo,
+        telefono: dto.telefono,
+        genero: dto.genero,
+        cargo: dto.cargo || 'Empleado',
+
+        // Datos de sistema
+        uid,
+        usuario: dto.usuario,
+        passwordHash,
+        fotoPerfilUrl,
+
+        // Ubicación y Relaciones
+        latitud: dto.lat,
+        longitud: dto.lng,
+        branchId: null,
+        manager_id: null,
+        status: 'activo',
+
+        // Metadatos
+        fechaIngreso: new Date(),
+        empresaId
+      });
 
     return uid;
   }
 
   async findByUsername(usuario: string) {
-    const snap = await this.firebase.firestore.collection('usuarios')
-      .where('usuario', '==', usuario).get();
-    return snap.empty ? null : snap.docs[0].data();
+    const snapshot = await this.firestore.collectionGroup('employees')
+      .where('usuario', '==', usuario)
+      .get();
+
+    if (snapshot.empty) return null;
+
+    const doc = snapshot.docs[0];
+    const empresaId = doc.ref.parent.parent?.id;
+
+    return { id: doc.id, empresaId, ...doc.data() } as any;
   }
 
   // Método para LEER el perfil (GET)
   async findById(uid: string) {
-    const doc = await this.firebase.firestore.collection('usuarios').doc(uid).get();
-    if (!doc.exists) return null;
-    return doc.data();
+    const snap = await this.firestore.collectionGroup('employees')
+      .where('uid', '==', uid).get();
+
+    if (snap.empty) return null;
+    return snap.docs[0].data();
   }
 
   // Método para ACTUALIZAR el perfil (PATCH)
-  async update(uid: string, data: any) {
-    // Eliminamos campos que no deben tocarse por seguridad si llegan en el data
-    const { uid: id, correo, cedula, ...updateData } = data; 
-    
-    await this.firebase.firestore.collection('usuarios').doc(uid).update(updateData);
+  async update(companyId: string, uid: string, data: any) {
+    const { uid: id, ...updateData } = data;
+
+    await this.firestore
+      .collection('companies').doc(companyId)
+      .collection('employees').doc(uid)
+      .update(updateData);
+
     return { uid, ...updateData };
+  }
+
+
+
+  
+
+  // Metodo para obtener la jornada vigente
+ async getJornadaVigente(companyId: string, employeeId: string): Promise<Jornada | null> {
+    
+    // La jornada se obtiene filtrando el flag 'activa: true'
+    const snapshot = await this.firestore
+      .collection('companies').doc(companyId)
+      .collection('employees').doc(employeeId)
+      .collection('jornadas')
+      .where('activa', '==', true) // <-- FILTRO CRUCIAL AGREGADO
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) {
+      // Si no hay jornada activa, devuelve null
+      return null;
+    }
+    
+    // Retorna la primera (y única activa)
+    const doc = snapshot.docs[0];
+    return {
+        id: doc.id,
+        ...doc.data()
+    } as Jornada;
   }
 }
 
